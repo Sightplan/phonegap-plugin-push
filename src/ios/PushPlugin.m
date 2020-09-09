@@ -28,11 +28,7 @@
 
 #import "PushPlugin.h"
 #import "AppDelegate+notification.h"
-
 @import Firebase;
-@import FirebaseCore;
-@import FirebaseInstanceID;
-@import FirebaseMessaging;
 
 @implementation PushPlugin : CDVPlugin
 
@@ -56,14 +52,11 @@
 -(void)initRegistration;
 {
     [[FIRInstanceID instanceID] instanceIDWithHandler:^(FIRInstanceIDResult * _Nullable result, NSError * _Nullable error) {
-        if (error != nil) {
-            NSLog(@"Error fetching remote instance ID: %@", error);
-        } else {
-            NSLog(@"Remote instance ID (FCM Registration) Token: %@", result.token);
-
-            [self setFcmRegistrationToken: result.token];
-
-            NSString* message = [NSString stringWithFormat:@"Remote InstanceID token: %@", result.token];
+        NSString * registrationToken = result.token;
+        
+        if (registrationToken != nil) {
+            NSLog(@"FCM Registration Token: %@", registrationToken);
+            [self setFcmRegistrationToken: registrationToken];
 
             id topics = [self fcmTopics];
             if (topics != nil) {
@@ -74,7 +67,9 @@
                 }
             }
 
-            [self registerWithToken:result.token];
+            [self registerWithToken:registrationToken];
+        } else {
+            NSLog(@"FCM token is null");
         }
     }];
 }
