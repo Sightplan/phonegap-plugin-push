@@ -302,6 +302,12 @@
 
             //  GCM options
             [self setFcmSenderId: fcmSenderId];
+
+            // Force APNS
+            NSLog(@"Using APNS Notification");
+            [self setUsesFCM:NO];
+
+            /*
             if(isGcmEnabled && [[self fcmSenderId] length] > 0) {
                 NSLog(@"Using FCM Notification");
                 [self setUsesFCM: YES];
@@ -314,6 +320,8 @@
                 NSLog(@"Using APNS Notification");
                 [self setUsesFCM:NO];
             }
+            */
+            
             id fcmSandboxArg = [iosOptions objectForKey:@"fcmSandbox"];
 
             [self setFcmSandbox:@NO];
