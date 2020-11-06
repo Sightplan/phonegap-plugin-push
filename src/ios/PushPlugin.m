@@ -28,7 +28,11 @@
 
 #import "PushPlugin.h"
 #import "AppDelegate+notification.h"
+
 @import Firebase;
+@import FirebaseCore;
+@import FirebaseInstanceID;
+@import FirebaseMessaging;
 
 @implementation PushPlugin : CDVPlugin
 
@@ -52,11 +56,14 @@
 -(void)initRegistration;
 {
     [[FIRInstanceID instanceID] instanceIDWithHandler:^(FIRInstanceIDResult * _Nullable result, NSError * _Nullable error) {
-        NSString * registrationToken = result.token;
-        
-        if (registrationToken != nil) {
-            NSLog(@"FCM Registration Token: %@", registrationToken);
-            [self setFcmRegistrationToken: registrationToken];
+        if (error != nil) {
+            NSLog(@"Error fetching remote instance ID: %@", error);
+        } else {
+            NSLog(@"Remote instance ID (FCM Registration) Token: %@", result.token);
+
+            [self setFcmRegistrationToken: result.token];
+
+            NSString* message = [NSString stringWithFormat:@"Remote InstanceID token: %@", result.token];
 
             id topics = [self fcmTopics];
             if (topics != nil) {
@@ -67,9 +74,7 @@
                 }
             }
 
-            [self registerWithToken:registrationToken];
-        } else {
-            NSLog(@"FCM token is null");
+            [self registerWithToken:result.token];
         }
     }];
 }
@@ -200,6 +205,7 @@
             id badgeArg = [iosOptions objectForKey:@"badge"];
             id soundArg = [iosOptions objectForKey:@"sound"];
             id alertArg = [iosOptions objectForKey:@"alert"];
+            id criticalArg = [iosOptions objectForKey:@"critical"];
             id clearBadgeArg = [iosOptions objectForKey:@"clearBadge"];
 
             if (([badgeArg isKindOfClass:[NSString class]] && [badgeArg isEqualToString:@"true"]) || [badgeArg boolValue])
@@ -215,6 +221,14 @@
             if (([alertArg isKindOfClass:[NSString class]] && [alertArg isEqualToString:@"true"]) || [alertArg boolValue])
             {
                 authorizationOptions |= UNAuthorizationOptionAlert;
+            }
+
+            if (@available(iOS 12.0, *))
+            {
+                if ((([criticalArg isKindOfClass:[NSString class]] && [criticalArg isEqualToString:@"true"]) || [criticalArg boolValue]))
+                {
+                    authorizationOptions |= UNAuthorizationOptionCriticalAlert;
+                }
             }
 
             if (clearBadgeArg == nil || ([clearBadgeArg isKindOfClass:[NSString class]] && [clearBadgeArg isEqualToString:@"false"]) || ![clearBadgeArg boolValue]) {
@@ -321,7 +335,7 @@
                 [self setUsesFCM:NO];
             }
             */
-            
+
             id fcmSandboxArg = [iosOptions objectForKey:@"fcmSandbox"];
 
             [self setFcmSandbox:@NO];
@@ -509,7 +523,7 @@
             [matchingNotificationIdentifiers addObject:notification.request.identifier];
         }
         [[UNUserNotificationCenter currentNotificationCenter] removeDeliveredNotificationsWithIdentifiers:matchingNotificationIdentifiers];
-        
+
         NSString *message = [NSString stringWithFormat:@"Cleared notification with ID: %@", notId];
         CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:message];
         [self.commandDelegate sendPluginResult:commandResult callbackId:command.callbackId];
